@@ -24,10 +24,10 @@ class MemoryBlock:
 
         Args:
             data: The string value to write to the memory block.
-        
-        if len(value) != len(self.units):
-            raise MemoryError("Value length does not match memory block size.")
         """
+        if len(self.units) < 1:
+            raise MemoryError("Cannot write to a freed memory block.")
+
         if len(data) > len(self.units):
             raise MemoryError("data length exceeds memory block size.")
         
@@ -122,7 +122,7 @@ class MemoryManager:
         self.freed_fragmented_units.extend(block.units)
 
         # Delete references to the block's units
-        del block.units
+        block.units = []
         
         # Remove the block from allocated blocks
         del self.allocated_blocks[block.id]
