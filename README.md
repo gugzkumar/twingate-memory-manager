@@ -1,1 +1,1 @@
-# twingate-memory-manager
+# Twingate Memory Manager
