@@ -15,8 +15,16 @@ class MemoryUnit:
 
 @dataclass
 class MemoryBlock:
+    """
+    Represents a block of memory allocated from the memory manager.
+
+    Attributes:
+        units: List of MemoryUnit instances that make up this memory block.
+        id: Unique identifier for the memory block.
+    """
+
     units: list[MemoryUnit]
-    id: UUID = uuid4()
+    id: UUID
 
     def write(self, data: str):
         """
@@ -49,11 +57,19 @@ class MemoryBlock:
 
 
 class MemoryManager:
-    
+    """
+    Manages a contiguous block of memory, allowing allocation, freeing, and defragmentation.
+
+    Attributes:
+        buffer: Represents the contiguous memory buffer.
+        next_alloc_index: The next index in the buffer to allocate from.
+        allocated_blocks: A dictionary mapping block IDs to allocated MemoryBlock instances.
+        freed_fragmented_units: A stack of freed MemoryUnit instances for fragmented allocations.
+    """
     buffer: list[MemoryUnit]
-    next_alloc_index: int = 0
-    allocated_blocks: dict[UUID, MemoryBlock] = {}
-    freed_fragmented_units: list[MemoryUnit] = [] # Stack of freed memory units
+    next_alloc_index: int
+    allocated_blocks: dict[UUID, MemoryBlock]
+    freed_fragmented_units: list[MemoryUnit] # Stack of freed memory units
     
     def __init__(self, buffer_size: int):
         """Initialize the memory manager with a contiguous buffer.
@@ -66,6 +82,8 @@ class MemoryManager:
 
         self.buffer = [MemoryUnit() for _ in range(buffer_size)]
         self.next_alloc_index = 0
+        self.allocated_blocks = {}
+        self.freed_fragmented_units = []
     
     def _free_buffer_size(self) -> int:
         """Returns the total free size in the buffer."""
@@ -90,12 +108,14 @@ class MemoryManager:
         # Allocate the memory block from the buffer
         allocated_units = []
         
+        # Use freed fragmented units first
         if self.freed_fragmented_units:
             while size > 0 and self.freed_fragmented_units:
                 unit = self.freed_fragmented_units.pop()
                 allocated_units.append(unit)
                 size -= 1
 
+        # Allocate rest from the contiguous buffer
         allocated_units.extend(
             self.buffer[self.next_alloc_index:self.next_alloc_index + size]
         )
@@ -129,7 +149,7 @@ class MemoryManager:
 
 
     def defragment(self):
-        """Defragments the memory buffer to consolidate free space.  
+        """Defragments the memory buffer to consolidate free space towards the end of the buffer. 
         """
         new_buffer = []
 
@@ -151,10 +171,9 @@ class MemoryManager:
         self.freed_fragmented_units.clear()
 
     def __repr__(self):
-        """
-        Returns a string representation of the memory manager's state.
+        """Returns a string representation of the memory manager's state.
         
-        Can be improved
+        Note: Written for debugging, but can be improved
         """
         return(
             f"MemoryManager(buffer_size={len(self.buffer)}, " +\
@@ -164,4 +183,5 @@ class MemoryManager:
             f"free_buffer_size={self._free_buffer_size()}) \n" +\
             
             f"Buffer State: [{' '.join([unit.value if unit.value is not None else '-' for unit in self.buffer])}]"
+            # Todo: Can't tell difference between free and fragmented units in this view
         )
